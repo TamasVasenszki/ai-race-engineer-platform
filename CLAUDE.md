@@ -157,10 +157,10 @@ AI_PROVIDER=openai      # OpenAI API
 
 ## Workflow Convention
 
-Minden új feature branch előtt:
-1. Assigneld az issue-t a fejlesztőnek
-2. Mozgasd In Progress-be a Project táblán
-3. Hozz létre feat/[feature-name] branchet és checkout-olj rá
+Before every new feature branch:
+1. Assign the issue to the developer
+2. Move it to In Progress on the Project board
+3. Create a feat/[feature-name] branch and check it out
 
 ## Key Reminders
 
@@ -173,11 +173,11 @@ Minden új feature branch előtt:
 ## Current State
 
 ### Phase 1 — DONE
-- FastAPI backend fut, MockProvider AI analízist ad
-- PostgreSQL schema kész, Alembic migration futtatható
-- POST /laps/ → DB mentés + MockProvider AI analízis ✅
-- GET /laps/{id} → lap lekérése DB-ből ✅
-- .env a projekt gyökerében, config.py Path(__file__) alapú path-tal
+- FastAPI backend running, MockProvider returns AI analysis
+- PostgreSQL schema ready, Alembic migration executable
+- POST /laps/ → DB save + MockProvider AI analysis ✅
+- GET /laps/{id} → fetch lap from DB ✅
+- .env at project root, config.py uses Path(__file__)-based path
 
 ### API Endpoints
 - GET /health → {"status":"ok","ai_provider":"mock"}
@@ -185,10 +185,10 @@ Minden új feature branch előtt:
 - GET /laps/{id} → LapResponse
 
 ### Key Decisions
-- .env a projekt gyökerében (nem backend/-ben)
-- Docker postgres port: 5433 (5432 foglalt lokális postgres miatt)
-- Python 3.14 + hatchling>=1.27.0 a pyproject.toml-ban
-- schemas/ külön mappa a Pydantic modelleknek (nem models/)
+- .env at project root (not inside backend/)
+- Docker postgres port: 5433 (5432 occupied by local postgres)
+- Python 3.14 + hatchling>=1.27.0 in pyproject.toml
+- schemas/ as a separate folder for Pydantic models (not models/)
 
 ### Phase 2 — IN PROGRESS
 - React dashboard MVP (feat/react-dashboard)
