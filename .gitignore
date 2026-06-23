@@ -272,6 +272,7 @@ logs/
 dist/
 build/
 .next/
+.vite/
 out/
 
 # Claude Code
