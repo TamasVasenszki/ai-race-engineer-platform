@@ -170,6 +170,29 @@ Minden új feature branch előtt:
 4. **WebSocket:** Real-time data streaming requires a WebSocket connection between backend and frontend
 5. **MockProvider first:** In Phase 1, do not call any real AI API — MockProvider is sufficient for development and costs nothing
 
+## Current State
+
+### Phase 1 — DONE
+- FastAPI backend fut, MockProvider AI analízist ad
+- PostgreSQL schema kész, Alembic migration futtatható
+- POST /laps/ → DB mentés + MockProvider AI analízis ✅
+- GET /laps/{id} → lap lekérése DB-ből ✅
+- .env a projekt gyökerében, config.py Path(__file__) alapú path-tal
+
+### API Endpoints
+- GET /health → {"status":"ok","ai_provider":"mock"}
+- POST /laps/ → LapResponse (id, session_id, lap_time_ms, ai_summary, ai_recommendations, created_at)
+- GET /laps/{id} → LapResponse
+
+### Key Decisions
+- .env a projekt gyökerében (nem backend/-ben)
+- Docker postgres port: 5433 (5432 foglalt lokális postgres miatt)
+- Python 3.14 + hatchling>=1.27.0 a pyproject.toml-ban
+- schemas/ külön mappa a Pydantic modelleknek (nem models/)
+
+### Phase 2 — IN PROGRESS
+- React dashboard MVP (feat/react-dashboard)
+
 ## Reference Links
 
 - FastAPI docs: https://fastapi.tiangolo.com
