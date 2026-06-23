@@ -190,8 +190,12 @@ Before every new feature branch:
 - Python 3.14 + hatchling>=1.27.0 in pyproject.toml
 - schemas/ as a separate folder for Pydantic models (not models/)
 
-### Phase 2 — IN PROGRESS
-- React dashboard MVP (feat/react-dashboard)
+### Phase 2 — DONE
+- React dashboard MVP: Vite + TypeScript, LapDashboard component, useLap hook
+- ClaudeProvider implemented with async Anthropic SDK and forced tool use for structured output
+- Note: ClaudeProvider not yet tested with a live API key (deferred — no subscription yet); MockProvider covers all development
+
+### Phase 3 — IN PROGRESS
 
 ## Reference Links
 
