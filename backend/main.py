@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ai import get_provider
 from config import settings
+from routers import laps
 
 
 @asynccontextmanager
@@ -22,6 +23,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(laps.router, prefix="/laps", tags=["laps"])
 
 
 @app.get("/health")
