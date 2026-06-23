@@ -155,6 +155,13 @@ AI_PROVIDER=openai      # OpenAI API
 - Never commit `.env`, AWS credentials, or API keys
 - `.env.example` is fine — without values, as documentation only
 
+## Workflow Convention
+
+Minden új feature branch előtt:
+1. Assigneld az issue-t a fejlesztőnek
+2. Mozgasd In Progress-be a Project táblán
+3. Hozz létre feat/[feature-name] branchet és checkout-olj rá
+
 ## Key Reminders
 
 1. **Two machines:** The telemetry agent runs on Windows PC, the backend on Mac — network communication required between them
