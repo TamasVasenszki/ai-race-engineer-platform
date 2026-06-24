@@ -178,6 +178,7 @@ Before every new feature branch:
 - POST /laps/ → DB save + MockProvider AI analysis ✅
 - GET /laps/{id} → fetch lap from DB ✅
 - .env at project root, config.py uses Path(__file__)-based path
+- Telemetry agent (ac_telemetry.py + agent.py) tested on Windows with live AC session — Shared Memory reading and backend POST both working
 
 ### API Endpoints
 - GET /health → {"status":"ok","ai_provider":"mock"}
