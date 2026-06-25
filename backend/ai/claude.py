@@ -4,7 +4,6 @@ import anthropic
 
 from .base import AIProvider, AnalysisResult
 
-
 _SYSTEM_PROMPT = (
     "You are an expert Formula 1 race engineer. "
     "Analyze the lap telemetry provided and call report_lap_analysis "

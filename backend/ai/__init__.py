@@ -1,10 +1,10 @@
 import os
 
 from .base import AIProvider, AnalysisResult
-from .mock import MockProvider
 from .claude import ClaudeProvider
-from .openai import OpenAIProvider
+from .mock import MockProvider
 from .ollama import OllamaProvider
+from .openai import OpenAIProvider
 
 
 def get_provider() -> AIProvider:
