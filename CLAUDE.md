@@ -196,7 +196,7 @@ Before every new feature branch:
 - ClaudeProvider implemented with async Anthropic SDK and forced tool use for structured output
 - Note: ClaudeProvider not yet tested with a live API key (deferred — no subscription yet); MockProvider covers all development
 
-### Phase 3 — IN PROGRESS
+### Phase 3 — DONE
 - Docker Compose + GitHub Actions CI done (#7, PR #16):
   - Full stack (`db` + `backend` + `frontend`) comes up healthy with `docker compose up` — healthchecks, `depends_on: service_healthy`, `restart: unless-stopped`
   - Frontend: multi-stage Dockerfile (node build → nginx serving `dist/`), SPA fallback `nginx.conf`; mapped `5173:80` to keep the backend CORS origin valid
@@ -204,7 +204,15 @@ Before every new feature branch:
   - CI (`.github/workflows/ci.yml`): backend ruff+pytest, frontend tsc+vite build, docker build (both images, no push) — on push/PR to `main`
   - Healthcheck gotcha: containers must hit `127.0.0.1` not `localhost` (nginx/uvicorn listen IPv4-only; busybox wget doesn't fall back from IPv6)
 - Compose `backend` overrides `DATABASE_URL` to `db:5432` (the `.env` value points at `localhost:5433` for native dev)
-- Still TODO for Phase 3: AWS deploy with Terraform; CD workflow (ECR push / ECS deploy) tracked separately in #8
+- AWS deploy with Terraform + CD done (#8, PR #17) — backend-only scope:
+  - Terraform (`infra/terraform/`): VPC with 2 public + 2 private subnets, **no NAT gateway** (Fargate tasks run in public subnets with a public IP → reach ECR/Secrets/CloudWatch directly; RDS stays private)
+  - ECS Fargate cluster + service behind an internet-facing ALB (target health check `/health`, port 8000)
+  - RDS PostgreSQL (`db.t4g.micro`, encrypted, private); full async `DATABASE_URL` stored in Secrets Manager, injected into the task
+  - ECR repo for the backend image; IAM least privilege (ECS exec role reads only the DB secret, empty task role, GitHub OIDC provider + scoped CD role — no long-lived keys)
+  - CD (`.github/workflows/cd.yml`): on merge to `main`, OIDC role assume → build → ECR push (`sha`+`latest`) → render + deploy new ECS task def with `wait-for-service-stability`. **No-op until the `AWS_DEPLOY_ROLE_ARN` repo variable is set** from the `github_actions_role_arn` Terraform output (keeps `main` green before infra exists)
+  - Backend `entrypoint.sh`: `uvicorn --reload` now only when `APP_ENV=development` (compose sets it for local dev; prod/ECS runs without reload)
+  - Secrets Manager secrets use `recovery_window_in_days = 0` so `terraform destroy` deletes them immediately — otherwise a re-apply hits "secret already exists / scheduled for deletion" during the destroy→apply cycle
+- Still TODO / next: `terraform apply` is manual (local state, spends money — user's call); after apply, set the `AWS_DEPLOY_ROLE_ARN` repo variable so CD deploys. Frontend deploy deferred. Phase 4 = EKS + Prometheus/Grafana/Loki observability
 
 ## Reference Links
 
