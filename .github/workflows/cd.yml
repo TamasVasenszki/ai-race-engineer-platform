@@ -1,0 +1,77 @@
+name: CD
+
+# Builds the backend image, pushes it to ECR, and rolls the ECS service.
+# Infrastructure is provisioned separately with Terraform (infra/terraform/).
+# This workflow is a no-op until the AWS_DEPLOY_ROLE_ARN repo variable is set to the
+# `github_actions_role_arn` Terraform output. The env constants below must match the
+# Terraform resource names (defaults derived from project_name = "ai-race-engineer").
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: ai-race-engineer-backend
+  ECS_CLUSTER: ai-race-engineer-cluster
+  ECS_SERVICE: ai-race-engineer-backend
+  TASK_FAMILY: ai-race-engineer-backend
+  CONTAINER_NAME: ai-race-engineer-backend
+
+jobs:
+  deploy:
+    name: Build & deploy backend
+    runs-on: ubuntu-latest
+    # Skip until infra is provisioned and the deploy role ARN is configured.
+    if: vars.AWS_DEPLOY_ROLE_ARN != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push backend image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Fetch current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --query 'taskDefinition' \
+            | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            > task-definition.json
+
+      - name: Render new image into task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
