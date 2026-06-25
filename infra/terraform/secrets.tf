@@ -12,6 +12,10 @@ locals {
 resource "aws_secretsmanager_secret" "database_url" {
   name        = "${local.name}/database-url"
   description = "Backend DATABASE_URL (async SQLAlchemy connection string)."
+
+  # Delete immediately on destroy (no recovery window) so re-apply doesn't hit
+  # "secret already exists" / "scheduled for deletion".
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "database_url" {
@@ -23,6 +27,10 @@ resource "aws_secretsmanager_secret_version" "database_url" {
 resource "aws_secretsmanager_secret" "anthropic_api_key" {
   name        = "${local.name}/anthropic-api-key"
   description = "Anthropic API key (empty until a live Claude key is provisioned)."
+
+  # Delete immediately on destroy (no recovery window) so re-apply doesn't hit
+  # "secret already exists" / "scheduled for deletion".
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "anthropic_api_key" {
