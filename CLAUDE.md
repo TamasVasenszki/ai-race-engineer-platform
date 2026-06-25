@@ -197,6 +197,14 @@ Before every new feature branch:
 - Note: ClaudeProvider not yet tested with a live API key (deferred — no subscription yet); MockProvider covers all development
 
 ### Phase 3 — IN PROGRESS
+- Docker Compose + GitHub Actions CI done (#7, PR #16):
+  - Full stack (`db` + `backend` + `frontend`) comes up healthy with `docker compose up` — healthchecks, `depends_on: service_healthy`, `restart: unless-stopped`
+  - Frontend: multi-stage Dockerfile (node build → nginx serving `dist/`), SPA fallback `nginx.conf`; mapped `5173:80` to keep the backend CORS origin valid
+  - Backend: `entrypoint.sh` runs `alembic upgrade head` before uvicorn (schema auto-created); ruff lint config + `/health` pytest smoke test added
+  - CI (`.github/workflows/ci.yml`): backend ruff+pytest, frontend tsc+vite build, docker build (both images, no push) — on push/PR to `main`
+  - Healthcheck gotcha: containers must hit `127.0.0.1` not `localhost` (nginx/uvicorn listen IPv4-only; busybox wget doesn't fall back from IPv6)
+- Compose `backend` overrides `DATABASE_URL` to `db:5432` (the `.env` value points at `localhost:5433` for native dev)
+- Still TODO for Phase 3: AWS deploy with Terraform; CD workflow (ECR push / ECS deploy) tracked separately in #8
 
 ## Reference Links
 
