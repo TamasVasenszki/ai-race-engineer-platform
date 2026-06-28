@@ -188,7 +188,7 @@ Before every new feature branch:
 ### Key Decisions
 - .env at project root (not inside backend/)
 - Docker postgres port: 5433 (5432 occupied by local postgres)
-- Python 3.14 + hatchling>=1.27.0 in pyproject.toml
+- Python 3.13 everywhere (Dockerfile, pyproject `requires-python`, ruff `target-version`, CI `setup-python`); hatchling>=1.27.0. (3.14 was only the local dev machine, never a real requirement — unified in #19.)
 - schemas/ as a separate folder for Pydantic models (not models/)
 
 ### Phase 2 — DONE
@@ -212,7 +212,9 @@ Before every new feature branch:
   - CD (`.github/workflows/cd.yml`): on merge to `main`, OIDC role assume → build → ECR push (`sha`+`latest`) → render + deploy new ECS task def with `wait-for-service-stability`. **No-op until the `AWS_DEPLOY_ROLE_ARN` repo variable is set** from the `github_actions_role_arn` Terraform output (keeps `main` green before infra exists)
   - Backend `entrypoint.sh`: `uvicorn --reload` now only when `APP_ENV=development` (compose sets it for local dev; prod/ECS runs without reload)
   - Secrets Manager secrets use `recovery_window_in_days = 0` so `terraform destroy` deletes them immediately — otherwise a re-apply hits "secret already exists / scheduled for deletion" during the destroy→apply cycle
-- Still TODO / next: `terraform apply` is manual (local state, spends money — user's call); after apply, set the `AWS_DEPLOY_ROLE_ARN` repo variable so CD deploys. Frontend deploy deferred. Phase 4 = EKS + Prometheus/Grafana/Loki observability
+  - The AWS deploy was actually exercised end-to-end (not just written): `terraform apply` → CD deploy → live `/health` on the ALB → `terraform destroy`, all clean. Fixed the `anthropic_api_key` empty-string secret bug along the way (Secrets Manager rejects `secret_string = ""`, #18). Deployment screenshots in `docs/aws-deployment/`.
+- Base image hardening + Python 3.13 unification done (#19, PR #20): ECR scan flagged Perl Critical/High CVEs in the Debian base layer; the 3.13 switch did **not** clear them (no upstream Debian perl patch — present in every Debian-based python image). Not on the app's runtime path → risk documented and accepted; perl-free base image is a low-priority backlog follow-up (#21).
+- Still TODO / next: re-apply needs the `AWS_DEPLOY_ROLE_ARN` repo variable set from the `github_actions_role_arn` output. Frontend deploy deferred. Phase 4 = EKS + Prometheus/Grafana/Loki observability
 
 ## Reference Links
 
