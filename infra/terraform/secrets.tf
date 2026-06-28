@@ -23,17 +23,5 @@ resource "aws_secretsmanager_secret_version" "database_url" {
   secret_string = local.database_url
 }
 
-# Stubbed empty Anthropic key so switching AI_PROVIDER=claude later is just a value update.
-resource "aws_secretsmanager_secret" "anthropic_api_key" {
-  name        = "${local.name}/anthropic-api-key"
-  description = "Anthropic API key (empty until a live Claude key is provisioned)."
-
-  # Delete immediately on destroy (no recovery window) so re-apply doesn't hit
-  # "secret already exists" / "scheduled for deletion".
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "anthropic_api_key" {
-  secret_id     = aws_secretsmanager_secret.anthropic_api_key.id
-  secret_string = ""
-}
+# No Anthropic key secret: prod runs AI_PROVIDER=mock, and Secrets Manager rejects an
+# empty secret_string. Add a real secret here when switching to AI_PROVIDER=claude.
