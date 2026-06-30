@@ -3,10 +3,17 @@
 
 # region       = "eu-central-1"
 # project_name = "ai-race-engineer"
+# vpc_cidr     = "10.0.0.0/16"
 # github_repo  = "TamasVasenszki/ai-race-engineer-platform"
 
-# Sizing (defaults are the cheapest sensible options):
+# EKS:
+# cluster_version     = "1.36"   # override if unavailable in the region at apply time
+# node_instance_types = ["t3.medium"]
+# node_desired_size   = 2
+# node_min_size       = 2
+# node_max_size       = 4
+
+# Database (defaults are the cheapest sensible options):
 # db_instance_class = "db.t4g.micro"
-# task_cpu          = 256
-# task_memory       = 512
-# desired_count     = 1
+# db_name           = "race_engineer"
+# db_username       = "race"

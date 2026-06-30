@@ -10,18 +10,44 @@ variable "project_name" {
   default     = "ai-race-engineer"
 }
 
-variable "container_port" {
-  description = "Port the backend container listens on."
-  type        = number
-  default     = 8000
-}
-
-variable "image_tag" {
-  description = "ECR image tag the ECS task definition starts from. CD updates this per deploy."
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC."
   type        = string
-  default     = "latest"
+  default     = "10.0.0.0/16"
 }
 
+# --- EKS -------------------------------------------------------------------
+variable "cluster_version" {
+  description = "Kubernetes version for the EKS control plane. Override if unavailable at apply time."
+  type        = string
+  default     = "1.36"
+}
+
+variable "node_instance_types" {
+  description = "Instance types for the managed node group."
+  type        = list(string)
+  default     = ["t3.medium"]
+}
+
+variable "node_desired_size" {
+  description = "Desired number of worker nodes."
+  type        = number
+  default     = 2
+}
+
+variable "node_min_size" {
+  description = "Minimum number of worker nodes."
+  type        = number
+  default     = 2
+}
+
+variable "node_max_size" {
+  description = "Maximum number of worker nodes."
+  type        = number
+  default     = 4
+}
+
+# --- Database --------------------------------------------------------------
 variable "db_name" {
   description = "PostgreSQL database name."
   type        = string
@@ -40,30 +66,7 @@ variable "db_instance_class" {
   default     = "db.t4g.micro"
 }
 
-variable "db_allocated_storage" {
-  description = "RDS allocated storage in GB."
-  type        = number
-  default     = 20
-}
-
-variable "task_cpu" {
-  description = "Fargate task CPU units (256 = 0.25 vCPU)."
-  type        = number
-  default     = 256
-}
-
-variable "task_memory" {
-  description = "Fargate task memory in MiB."
-  type        = number
-  default     = 512
-}
-
-variable "desired_count" {
-  description = "Number of backend tasks to run."
-  type        = number
-  default     = 1
-}
-
+# --- CD --------------------------------------------------------------------
 variable "github_repo" {
   description = "GitHub <owner>/<repo> allowed to assume the CD role via OIDC."
   type        = string
