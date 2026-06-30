@@ -1,31 +1,31 @@
-output "alb_dns_name" {
-  description = "Public DNS name of the backend ALB."
-  value       = aws_lb.main.dns_name
+output "region" {
+  description = "AWS region (used by aws eks update-kubeconfig)."
+  value       = var.region
+}
+
+output "cluster_name" {
+  description = "EKS cluster name: aws eks update-kubeconfig --region <region> --name <this>."
+  value       = module.eks.cluster_name
+}
+
+output "cluster_endpoint" {
+  description = "EKS API server endpoint."
+  value       = module.eks.cluster_endpoint
+}
+
+output "cluster_version" {
+  description = "Kubernetes version running on the control plane."
+  value       = module.eks.cluster_version
 }
 
 output "ecr_repository_url" {
   description = "ECR repository URL for the backend image."
-  value       = aws_ecr_repository.backend.repository_url
+  value       = module.ecr.repository_url
 }
 
-output "ecs_cluster_name" {
-  description = "ECS cluster name (set in cd.yml ECS_CLUSTER)."
-  value       = aws_ecs_cluster.main.name
-}
-
-output "ecs_service_name" {
-  description = "ECS service name (set in cd.yml ECS_SERVICE)."
-  value       = aws_ecs_service.backend.name
-}
-
-output "container_name" {
-  description = "Container name in the task definition (set in cd.yml CONTAINER_NAME)."
-  value       = local.container_name
-}
-
-output "task_definition_family" {
-  description = "Task definition family (used by cd.yml to fetch the current revision)."
-  value       = aws_ecs_task_definition.backend.family
+output "database_url_secret_arn" {
+  description = "Secrets Manager ARN of the DATABASE_URL secret (read by the #23 CSI driver)."
+  value       = module.rds.database_url_secret_arn
 }
 
 output "github_actions_role_arn" {
@@ -35,6 +35,6 @@ output "github_actions_role_arn" {
 
 output "rds_endpoint" {
   description = "RDS PostgreSQL endpoint."
-  value       = aws_db_instance.postgres.endpoint
+  value       = module.rds.db_endpoint
   sensitive   = true
 }
