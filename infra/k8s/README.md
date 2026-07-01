@@ -9,6 +9,10 @@ community charts and the backend chart are installed with the `helm`/`kubectl` C
 below. #24 (CD) and #25 (Makefile) later automate these steps — this runbook is the manual
 reference they codify.
 
+> **Automated lifecycle:** the root `Makefile` codifies this runbook — `make apply` brings the
+> whole stack up and `make destroy` tears it down in the correct order (helm uninstall → wait for
+> this cluster's ALB to deprovision → `terraform destroy`). The steps below remain the reference.
+
 Chart versions below are pinned; verify/bump them at apply time (`helm search repo <chart> --versions`).
 
 ## Prerequisites
