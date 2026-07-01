@@ -3,6 +3,11 @@ output "cluster_name" {
   value       = aws_eks_cluster.main.name
 }
 
+output "cluster_arn" {
+  description = "EKS cluster ARN (scopes the CD role's eks:DescribeCluster and its access entry)."
+  value       = aws_eks_cluster.main.arn
+}
+
 output "cluster_endpoint" {
   description = "EKS API server endpoint."
   value       = aws_eks_cluster.main.endpoint
