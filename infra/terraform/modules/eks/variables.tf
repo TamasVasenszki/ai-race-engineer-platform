@@ -8,6 +8,11 @@ variable "private_subnet_ids" {
   type        = list(string)
 }
 
+variable "database_url_secret_arn" {
+  description = "Secrets Manager ARN of the DATABASE_URL secret; the backend secret-reader role is scoped to it."
+  type        = string
+}
+
 variable "cluster_version" {
   description = "Kubernetes version for the EKS control plane. Swap if unavailable at apply time."
   type        = string

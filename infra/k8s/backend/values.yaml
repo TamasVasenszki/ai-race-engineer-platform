@@ -1,0 +1,56 @@
+# Backend chart values.
+#
+# namespace + serviceAccount.name are a contract with the Terraform Pod Identity association
+# (infra/terraform/modules/eks/pod_identity.tf, locals backend_namespace / backend_service_account).
+# If they diverge, Pod Identity grants nothing and the CSI mount fails silently — keep them in sync.
+
+namespace: default
+
+replicaCount: 2
+
+image:
+  # Override at install: --set image.repository=$(terraform output -raw ecr_repository_url)
+  repository: REPLACE_WITH_ECR_REPOSITORY_URL
+  # sha-based tag supplied by CD (#24); "latest" for manual installs.
+  tag: latest
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  # No IRSA (eks.amazonaws.com/role-arn) annotation: EKS Pod Identity binds the role by
+  # (namespace, serviceAccountName) via the association, not by an SA annotation.
+  name: ai-race-backend
+
+containerPort: 8000
+
+service:
+  port: 80
+
+ingress:
+  scheme: internet-facing
+  healthcheckPath: /health
+
+# AWS region and the Secrets Manager secret the CSI driver reads.
+aws:
+  region: eu-central-1
+  # EKS Pod Identity mode (not IRSA). Requires the CSI driver installed with tokenRequests
+  # audiences sts.amazonaws.com + pods.eks.amazonaws.com (see infra/k8s/README.md).
+  usePodIdentity: "true"
+  # Override at install: --set aws.databaseUrlSecretName=$(terraform output -raw database_url_secret_name)
+  databaseUrlSecretName: ai-race-engineer/database-url
+
+# The native k8s Secret the CSI driver syncs the plain-string value into.
+secret:
+  syncedName: backend-db
+  key: DATABASE_URL
+
+env:
+  APP_ENV: production
+  AI_PROVIDER: mock
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
