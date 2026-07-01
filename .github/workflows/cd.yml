@@ -1,10 +1,12 @@
 name: CD
 
-# Builds the backend image, pushes it to ECR, and rolls the ECS service.
-# Infrastructure is provisioned separately with Terraform (infra/terraform/).
-# This workflow is a no-op until the AWS_DEPLOY_ROLE_ARN repo variable is set to the
-# `github_actions_role_arn` Terraform output. The env constants below must match the
-# Terraform resource names (defaults derived from project_name = "ai-race-engineer").
+# Builds the backend image, pushes it to ECR, and rolls out the new revision on EKS with
+# `helm upgrade` of the infra/k8s/backend chart. The cluster, add-ons (AWS Load Balancer
+# Controller, Secrets Store CSI driver) and the DATABASE_URL secret are provisioned separately
+# (Terraform + infra/k8s/README.md); this workflow only deploys the app.
+# No-op until the AWS_DEPLOY_ROLE_ARN repo variable is set to the `github_actions_role_arn`
+# Terraform output. The env constants below must match the Terraform resource names
+# (defaults derived from project_name = "ai-race-engineer").
 
 on:
   push:
@@ -18,10 +20,8 @@ permissions:
 env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: ai-race-engineer-backend
-  ECS_CLUSTER: ai-race-engineer-cluster
-  ECS_SERVICE: ai-race-engineer-backend
-  TASK_FAMILY: ai-race-engineer-backend
-  CONTAINER_NAME: ai-race-engineer-backend
+  EKS_CLUSTER: ai-race-engineer-cluster
+  DB_SECRET_NAME: ai-race-engineer/database-url
 
 jobs:
   deploy:
@@ -43,7 +43,6 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build & push backend image
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -52,26 +51,18 @@ jobs:
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
 
-      - name: Fetch current task definition
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+
+      - name: Deploy backend (helm upgrade)
         run: |
-          aws ecs describe-task-definition \
-            --task-definition "$TASK_FAMILY" \
-            --query 'taskDefinition' \
-            | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
-            > task-definition.json
-
-      - name: Render new image into task definition
-        id: render
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          helm upgrade --install ai-race-backend infra/k8s/backend \
+            --namespace default \
+            --set image.repository=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }} \
+            --set image.tag=${{ github.sha }} \
+            --set aws.region="$AWS_REGION" \
+            --set aws.databaseUrlSecretName="$DB_SECRET_NAME" \
+            --wait --timeout 10m

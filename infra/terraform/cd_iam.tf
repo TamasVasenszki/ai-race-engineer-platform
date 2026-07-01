@@ -1,9 +1,11 @@
 # GitHub Actions OIDC provider + CD role (no long-lived keys).
 #
-# Phase 4 scope: the role can authenticate to ECR and push the backend image. EKS deploy
-# permissions (and a matching EKS access entry) are added in #24 when CD is rewritten to
-# deploy via `helm upgrade`. The role is a no-op until the AWS_DEPLOY_ROLE_ARN repo
-# variable is set from the github_actions_role_arn output.
+# The role authenticates to ECR (push the backend image) and to EKS (deploy via `helm upgrade`):
+# an EKS access entry + AmazonEKSClusterAdminPolicy association give it the Kubernetes RBAC the
+# chart needs (incl. the SecretProviderClass CRD, which no narrower AWS-managed policy covers).
+# The security boundary is the OIDC trust below — assumable only from refs/heads/main. The role
+# is a no-op until the AWS_DEPLOY_ROLE_ARN repo variable is set from the github_actions_role_arn
+# output.
 
 data "tls_certificate" "github" {
   url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
@@ -66,10 +68,38 @@ data "aws_iam_policy_document" "github_cd" {
     ]
     resources = [module.ecr.repository_arn]
   }
+
+  # Required by `aws eks update-kubeconfig`; the Kubernetes-level permissions come from the
+  # access entry below, not from IAM.
+  statement {
+    sid       = "EksDescribe"
+    actions   = ["eks:DescribeCluster"]
+    resources = [module.eks.cluster_arn]
+  }
 }
 
 resource "aws_iam_role_policy" "github_cd" {
   name   = "${var.project_name}-github-cd"
   role   = aws_iam_role.github_actions_cd.id
   policy = data.aws_iam_policy_document.github_cd.json
+}
+
+# EKS access entry: maps the CD IAM role to cluster-admin Kubernetes RBAC so `helm upgrade` can
+# manage the full chart (Deployment/Service/Ingress/ServiceAccount + the SecretProviderClass CRD).
+resource "aws_eks_access_entry" "github_cd" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_iam_role.github_actions_cd.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_cd" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_iam_role.github_actions_cd.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.github_cd]
 }
