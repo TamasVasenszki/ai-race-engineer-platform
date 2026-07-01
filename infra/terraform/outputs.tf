@@ -23,9 +23,19 @@ output "ecr_repository_url" {
   value       = module.ecr.repository_url
 }
 
+output "vpc_id" {
+  description = "VPC ID (passed to the AWS Load Balancer Controller helm install: --set vpcId)."
+  value       = module.vpc.vpc_id
+}
+
 output "database_url_secret_arn" {
   description = "Secrets Manager ARN of the DATABASE_URL secret (read by the #23 CSI driver)."
   value       = module.rds.database_url_secret_arn
+}
+
+output "database_url_secret_name" {
+  description = "Secrets Manager name of the DATABASE_URL secret (the backend chart's SecretProviderClass objectName)."
+  value       = module.rds.database_url_secret_name
 }
 
 output "github_actions_role_arn" {

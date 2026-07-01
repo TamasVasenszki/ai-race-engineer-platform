@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ai-race-backend
+description: AI Race Engineer FastAPI backend — Deployment + Service + ALB Ingress, with the DATABASE_URL secret delivered by the Secrets Store CSI driver (AWS provider).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
