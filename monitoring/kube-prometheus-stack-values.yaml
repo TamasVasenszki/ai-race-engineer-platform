@@ -1,0 +1,32 @@
+# kube-prometheus-stack values for the AI Race Engineer platform (#26).
+#
+# Ephemeral (no persistence -> no EBS PVCs to orphan on teardown) and Alertmanager disabled
+# (alerting is #27) to stay light on the 2x t3.medium node group.
+#
+# No Grafana admin password here — it would be committed. The chart default (admin / prom-operator)
+# applies; acceptable because Grafana is reached only via `kubectl port-forward`, never a public
+# endpoint (see README.md). Override at install with `--set grafana.adminPassword=...` if needed.
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    # Scrape every ServiceMonitor/PodMonitor in the cluster, not only ones labeled with the
+    # Helm release — so monitoring/backend-servicemonitor.yaml is picked up as-is.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    retention: 6h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+
+grafana:
+  defaultDashboardsEnabled: true
+  # The sidecar imports any ConfigMap labeled grafana_dashboard as a dashboard.
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL

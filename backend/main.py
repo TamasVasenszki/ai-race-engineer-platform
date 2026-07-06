@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from ai import get_provider
 from config import settings
@@ -26,6 +27,10 @@ app.add_middleware(
 
 
 app.include_router(laps.router, prefix="/laps", tags=["laps"])
+
+# Prometheus metrics at /metrics (http_requests_total, http_request_duration_seconds, …),
+# scraped by the kube-prometheus-stack via the ServiceMonitor in monitoring/.
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health")
