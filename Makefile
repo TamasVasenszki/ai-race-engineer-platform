@@ -47,6 +47,7 @@ help:
 
 # ---- apply -----------------------------------------------------------------
 apply:
+	@docker info >/dev/null 2>&1 || { echo "ERROR: Docker daemon is not running — start Docker Desktop, then re-run 'make apply'."; exit 1; }
 	@echo ">> [1/7] terraform apply (auto-approve)"
 	$(TF) init -input=false
 	$(TF) apply -auto-approve
@@ -167,16 +168,39 @@ destroy: confirm-destroy
 	    exit 1; fi; \
 	  echo "   $$N ALB(s) still present for $$CLUSTER..."; sleep 15; \
 	done; \
+	echo ">> waiting for the LBC to delete its own security groups (tag-filtered; bounded)"; \
+	for i in $$(seq 1 20); do \
+	  S=$$(aws resourcegroupstaggingapi get-resources --region $$REGION \
+	        --resource-type-filters ec2:security-group \
+	        --tag-filters Key=elbv2.k8s.aws/cluster,Values=$$CLUSTER \
+	        --query 'length(ResourceTagMappingList)' --output text 2>/dev/null || echo "?"); \
+	  if [ "$$S" = "0" ]; then echo "   LBC security groups cleared"; break; fi; \
+	  if [ "$$i" -eq 20 ]; then echo "   WARNING: $$S SG(s) still present after timeout; force-delete fallback will handle them"; break; fi; \
+	  echo "   $$S LBC SG(s) still present for $$CLUSTER..."; sleep 15; \
+	done; \
 	echo ">> removing cluster add-ons"; \
 	kubectl delete -f $(CSI_AWS_PROVIDER_URL) --ignore-not-found=true || true; \
 	helm uninstall csi-secrets-store -n kube-system || true; \
 	helm uninstall aws-load-balancer-controller -n kube-system || true; \
+	echo ">> force-deleting any remaining LBC security groups (fail-safe)"; \
+	for ARN in $$(aws resourcegroupstaggingapi get-resources --region $$REGION \
+	      --resource-type-filters ec2:security-group \
+	      --tag-filters Key=elbv2.k8s.aws/cluster,Values=$$CLUSTER \
+	      --query 'ResourceTagMappingList[].ResourceARN' --output text 2>/dev/null); do \
+	  SGID=$${ARN##*/}; \
+	  echo "   deleting $$SGID"; \
+	  aws ec2 delete-security-group --region $$REGION --group-id $$SGID || true; \
+	done; \
 	echo ">> terraform destroy"; \
 	$(TF) destroy -auto-approve; \
-	echo ">> cleanliness check: $$CLUSTER-tagged ALBs remaining"; \
-	LEFT=$$(aws resourcegroupstaggingapi get-resources --region $$REGION \
+	echo ">> cleanliness check: $$CLUSTER-tagged ALBs and SGs remaining"; \
+	LEFT_ALB=$$(aws resourcegroupstaggingapi get-resources --region $$REGION \
 	         --resource-type-filters elasticloadbalancing:loadbalancer \
 	         --tag-filters Key=elbv2.k8s.aws/cluster,Values=$$CLUSTER \
 	         --query 'length(ResourceTagMappingList)' --output text 2>/dev/null || echo "?"); \
-	echo "   remaining: $$LEFT (expect 0)"; \
+	LEFT_SG=$$(aws resourcegroupstaggingapi get-resources --region $$REGION \
+	         --resource-type-filters ec2:security-group \
+	         --tag-filters Key=elbv2.k8s.aws/cluster,Values=$$CLUSTER \
+	         --query 'length(ResourceTagMappingList)' --output text 2>/dev/null || echo "?"); \
+	echo "   remaining ALBs: $$LEFT_ALB, SGs: $$LEFT_SG (expect 0 / 0)"; \
 	echo ">> destroyed"
