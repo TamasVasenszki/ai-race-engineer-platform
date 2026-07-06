@@ -15,6 +15,10 @@ CHART      := infra/k8s/backend
 CHART_NAME := ai-race-backend
 NAMESPACE  := default
 
+# Monitoring (kube-prometheus-stack) — installed separately from the standard bring-up.
+MONITORING_NS := monitoring
+KPS_RELEASE   := kube-prometheus-stack
+
 # Overridable knobs. IMAGE_TAG=latest is the local bring-up fallback; CD deploys sha tags.
 IMAGE_TAG          ?= latest
 LBC_CHART_VERSION  ?= 1.13.4
@@ -24,7 +28,7 @@ CSI_AWS_PROVIDER_URL := https://raw.githubusercontent.com/aws/secrets-store-csi-
 
 TF := terraform -chdir=$(TF_DIR)
 
-.PHONY: help apply kubeconfig push lbc csi deploy url confirm-destroy destroy
+.PHONY: help apply kubeconfig push lbc csi deploy url monitoring grafana confirm-destroy destroy
 
 help:
 	@echo "AI Race Engineer — EKS lifecycle"
@@ -37,6 +41,8 @@ help:
 	@echo ""
 	@echo "  make push                  Build + push the backend image to ECR (tag IMAGE_TAG=$(IMAGE_TAG))."
 	@echo "  make deploy                Helm upgrade the backend chart only (assumes cluster + add-ons up)."
+	@echo "  make monitoring            Install kube-prometheus-stack + backend ServiceMonitor + dashboard."
+	@echo "  make grafana               Port-forward Grafana to http://localhost:3000 (admin/prom-operator)."
 	@echo "  make kubeconfig | lbc | csi | url   Individual steps."
 
 # ---- apply -----------------------------------------------------------------
@@ -113,6 +119,26 @@ url:
 	done; \
 	if [ -z "$$ALB" ]; then echo "ALB address not ready (timeout)"; exit 1; fi; \
 	echo "   backend: http://$$ALB/health"
+
+# ---- monitoring (opt-in; not part of `apply`) ------------------------------
+monitoring:
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>/dev/null || true
+	helm repo update prometheus-community
+	helm upgrade --install $(KPS_RELEASE) prometheus-community/kube-prometheus-stack \
+	  --namespace $(MONITORING_NS) --create-namespace \
+	  -f monitoring/kube-prometheus-stack-values.yaml
+	kubectl -n $(MONITORING_NS) rollout status deployment/$(KPS_RELEASE)-grafana --timeout=300s
+	kubectl apply -f monitoring/backend-servicemonitor.yaml
+	kubectl create configmap ai-race-backend-dashboard \
+	  --from-file=backend.json=monitoring/dashboards/backend.json \
+	  -n $(MONITORING_NS) --dry-run=client -o yaml \
+	  | kubectl label --local -f - grafana_dashboard=1 -o yaml \
+	  | kubectl apply -f -
+	@echo ">> monitoring up. Run 'make grafana', then open http://localhost:3000 (admin/prom-operator)."
+
+grafana:
+	@echo ">> Grafana at http://localhost:3000 (admin / prom-operator). Ctrl-C to stop."
+	kubectl -n $(MONITORING_NS) port-forward svc/$(KPS_RELEASE)-grafana 3000:80
 
 # ---- destroy ---------------------------------------------------------------
 confirm-destroy:

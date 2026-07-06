@@ -1,0 +1,18 @@
+# Tells the kube-prometheus-stack Prometheus to scrape the backend's /metrics endpoint.
+# Standalone (not in the backend Helm chart) so CD's `helm upgrade` never disturbs it and the
+# chart carries no monitoring.coreos.com CRD dependency. Lives in the backend's namespace.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ai-race-backend
+  namespace: default
+  labels:
+    app: ai-race-backend
+spec:
+  selector:
+    matchLabels:
+      app: ai-race-backend
+  endpoints:
+    - port: http          # the named Service port (infra/k8s/backend/templates/service.yaml)
+      path: /metrics
+      interval: 15s
