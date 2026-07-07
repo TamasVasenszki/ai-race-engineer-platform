@@ -30,9 +30,12 @@ variable "node_instance_types" {
 }
 
 variable "node_desired_size" {
+  # This root default is the value passed to the eks module (main.tf), so it is the effective one
+  # — the module's own default is shadowed by the explicit argument. 3 fits the observability stack
+  # (kube-prometheus-stack + Loki + Promtail) alongside the backend + LBC + CSI.
   description = "Desired number of worker nodes."
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_min_size" {
