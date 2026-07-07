@@ -11,8 +11,12 @@ loki:
   auth_enabled: false
   commonConfig:
     replication_factor: 1
+    path_prefix: /tmp/loki
   storage:
     type: filesystem
+    filesystem:
+      chunks_directory: /tmp/loki/chunks
+      rules_directory: /tmp/loki/rules
   schemaConfig:
     configs:
       - from: "2024-04-01"
@@ -25,6 +29,11 @@ loki:
   limits_config:
     retention_period: 24h
     reject_old_samples: false
+  rulerConfig:
+    storage:
+      type: local
+      local:
+        directory: /tmp/loki/rules
 
 singleBinary:
   replicas: 1
