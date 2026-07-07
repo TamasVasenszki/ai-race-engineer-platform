@@ -1,0 +1,47 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "tags": ["ai-race-engineer", "backend", "logs"],
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "AI Race Engineer — Backend Logs",
+  "uid": "ai-race-backend-logs",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "logs",
+      "title": "Backend logs (Loki)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 16, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{namespace=\"default\", pod=~\"ai-race-backend.*\"}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Log volume (lines/s)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "logs" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate({namespace=\"default\", pod=~\"ai-race-backend.*\"}[5m]))",
+          "legendFormat": "lines/s"
+        }
+      ]
+    }
+  ]
+}

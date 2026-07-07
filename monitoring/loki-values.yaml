@@ -1,0 +1,56 @@
+# grafana/loki chart values — SingleBinary, ephemeral (#27).
+#
+# Filesystem storage on emptyDir (no persistence) so there is no EBS PVC to orphan on teardown
+# (consistent with the rest of the monitoring stack). Logs are lost on pod restart — fine for a
+# demo. Caches, gateway, canary and minio are disabled to stay light on the node group.
+# The single-binary Service is `loki` on port 3100 (used by Promtail and the Grafana datasource).
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    retention_period: 24h
+    reject_old_samples: false
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# Disable the scalable-mode components and extras (SingleBinary only).
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+gateway:
+  enabled: false
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+minio:
+  enabled: false

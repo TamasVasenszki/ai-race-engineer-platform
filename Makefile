@@ -28,7 +28,7 @@ CSI_AWS_PROVIDER_URL := https://raw.githubusercontent.com/aws/secrets-store-csi-
 
 TF := terraform -chdir=$(TF_DIR)
 
-.PHONY: help apply kubeconfig push lbc csi deploy url monitoring grafana confirm-destroy destroy
+.PHONY: help apply kubeconfig push lbc csi deploy url monitoring logging grafana confirm-destroy destroy
 
 help:
 	@echo "AI Race Engineer — EKS lifecycle"
@@ -41,7 +41,8 @@ help:
 	@echo ""
 	@echo "  make push                  Build + push the backend image to ECR (tag IMAGE_TAG=$(IMAGE_TAG))."
 	@echo "  make deploy                Helm upgrade the backend chart only (assumes cluster + add-ons up)."
-	@echo "  make monitoring            Install kube-prometheus-stack + backend ServiceMonitor + dashboard."
+	@echo "  make monitoring            Install kube-prometheus-stack + backend ServiceMonitor + dashboard + alert rules."
+	@echo "  make logging               Install Loki + Promtail + Loki datasource + backend logs dashboard."
 	@echo "  make grafana               Port-forward Grafana to http://localhost:3000 (admin/prom-operator)."
 	@echo "  make kubeconfig | lbc | csi | url   Individual steps."
 
@@ -135,7 +136,26 @@ monitoring:
 	  -n $(MONITORING_NS) --dry-run=client -o yaml \
 	  | kubectl label --local -f - grafana_dashboard=1 -o yaml \
 	  | kubectl apply -f -
+	kubectl apply -f monitoring/alert-rules.yaml
 	@echo ">> monitoring up. Run 'make grafana', then open http://localhost:3000 (admin/prom-operator)."
+
+# ---- logging (opt-in; Loki + Promtail; run after `monitoring`) --------------
+logging:
+	helm repo add grafana https://grafana.github.io/helm-charts 2>/dev/null || true
+	helm repo update grafana
+	helm upgrade --install loki grafana/loki \
+	  --namespace $(MONITORING_NS) --create-namespace \
+	  -f monitoring/loki-values.yaml
+	helm upgrade --install promtail grafana/promtail \
+	  --namespace $(MONITORING_NS) \
+	  -f monitoring/promtail-values.yaml
+	kubectl apply -f monitoring/loki-datasource.yaml
+	kubectl create configmap ai-race-backend-logs-dashboard \
+	  --from-file=backend-logs.json=monitoring/dashboards/backend-logs.json \
+	  -n $(MONITORING_NS) --dry-run=client -o yaml \
+	  | kubectl label --local -f - grafana_dashboard=1 -o yaml \
+	  | kubectl apply -f -
+	@echo ">> logging up. Backend JSON logs flow to Loki; query via the Loki datasource in Grafana or the 'Backend Logs' dashboard."
 
 grafana:
 	@echo ">> Grafana at http://localhost:3000 (admin / prom-operator). Ctrl-C to stop."

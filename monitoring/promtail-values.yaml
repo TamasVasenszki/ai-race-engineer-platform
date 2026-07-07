@@ -1,0 +1,14 @@
+# grafana/promtail chart values (#27).
+#
+# Promtail runs as a daemonset and ships every pod's stdout/stderr to Loki. The chart's default
+# scrape config already discovers pods and adds namespace/pod/container labels; we only point the
+# client at the in-cluster Loki single-binary Service.
+
+config:
+  clients:
+    - url: http://loki:3100/loki/api/v1/push
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi

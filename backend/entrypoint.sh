@@ -8,4 +8,4 @@ alembic upgrade head
 RELOAD=""
 [ "$APP_ENV" = "development" ] && RELOAD="--reload"
 
-exec uvicorn main:app --host 0.0.0.0 --port 8000 $RELOAD
+exec uvicorn main:app --host 0.0.0.0 --port 8000 --log-config log_config.json $RELOAD

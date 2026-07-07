@@ -26,9 +26,9 @@ variable "node_instance_types" {
 }
 
 variable "node_desired_size" {
-  description = "Desired number of worker nodes."
+  description = "Desired number of worker nodes. 3 to fit the observability stack (kube-prometheus-stack + Loki + Promtail) alongside the backend + LBC + CSI."
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_min_size" {
