@@ -9,7 +9,7 @@
 # EKS:
 # cluster_version     = "1.36"   # override if unavailable in the region at apply time
 # node_instance_types = ["t3.medium"]
-# node_desired_size   = 2
+# node_desired_size   = 3   # 3 fits the observability stack (Prometheus/Grafana + Loki/Promtail)
 # node_min_size       = 2
 # node_max_size       = 4
 

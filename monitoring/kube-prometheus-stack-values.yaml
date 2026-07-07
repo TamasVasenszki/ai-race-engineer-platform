@@ -1,7 +1,8 @@
-# kube-prometheus-stack values for the AI Race Engineer platform (#26).
+# kube-prometheus-stack values for the AI Race Engineer platform (#26, +#27 alerting).
 #
-# Ephemeral (no persistence -> no EBS PVCs to orphan on teardown) and Alertmanager disabled
-# (alerting is #27) to stay light on the 2x t3.medium node group.
+# Ephemeral (no persistence -> no EBS PVCs to orphan on teardown). Alertmanager stays disabled —
+# #27 uses Grafana unified alerting (self-contained), provisioned via a grafana_alert ConfigMap
+# (monitoring/alert-rules.yaml), so no Alertmanager is needed.
 #
 # No Grafana admin password here — it would be committed. The chart default (admin / prom-operator)
 # applies; acceptable because Grafana is reached only via `kubectl port-forward`, never a public
@@ -24,9 +25,19 @@ prometheus:
 
 grafana:
   defaultDashboardsEnabled: true
-  # The sidecar imports any ConfigMap labeled grafana_dashboard as a dashboard.
+  # The sidecars import any ConfigMap with the matching label: dashboards (grafana_dashboard),
+  # data sources (grafana_datasource — e.g. monitoring/loki-datasource.yaml), and unified alerting
+  # rules (grafana_alert — monitoring/alert-rules.yaml).
   sidecar:
     dashboards:
       enabled: true
       label: grafana_dashboard
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      searchNamespace: ALL
+    alerts:
+      enabled: true
+      label: grafana_alert
       searchNamespace: ALL
