@@ -37,6 +37,29 @@ docker compose up      # db + backend + frontend, healthchecked
 Backend on `:8000` (`/health`, `/metrics`), frontend on `:5173`. Uses the Mock AI provider by
 default — no API key needed.
 
+### Offline mode (Ollama)
+
+Run the full stack locally without internet using a local LLM:
+
+```sh
+# 1. Set the AI provider to Ollama in .env
+#    AI_PROVIDER=ollama
+#    OLLAMA_MODEL=llama3.2
+
+# 2. Start all services (db + backend + frontend + ollama)
+docker compose --profile ollama up
+
+# 3. First run only — pull the model (requires internet once)
+docker exec -it <ollama-container> ollama pull llama3.2
+
+# 4. Verify
+curl http://localhost:8000/health
+# → {"status":"ok","ai_provider":"ollama","ollama_status":"ok"}
+```
+
+After the model is pulled, the platform works fully offline. The `/health` endpoint reports
+Ollama reachability. ~4 GB disk required for the default model.
+
 ### AWS EKS (Terraform + Helm, orchestrated by the Makefile)
 
 ```sh
@@ -65,6 +88,6 @@ monitoring/       Prometheus/Grafana values, Loki/Promtail, dashboards, alert ru
 
 ## Status
 
-Phases 1–4 complete: telemetry + backend + DB, AI analysis + dashboard, Docker + CI/CD + AWS,
-and EKS + cloud-native observability (metrics, logs, alerting). See `CLAUDE.md` for the detailed
-per-phase state.
+Phases 1–5 complete: telemetry + backend + DB, AI analysis + dashboard, Docker + CI/CD + AWS,
+EKS + cloud-native observability (metrics, logs, alerting), and AI Incident Analyst + Ollama
+offline mode. See `CLAUDE.md` for the detailed per-phase state.

@@ -38,6 +38,7 @@ services:
       # Override the .env value (which points at localhost:5433 for native dev) so the
       # backend reaches the postgres service over the compose network.
       DATABASE_URL: postgresql+asyncpg://race:race@db:5432/race_engineer
+      OLLAMA_BASE_URL: http://ollama:11434
       # Enable uvicorn --reload for local development (omitted in production / ECS).
       APP_ENV: development
     ports:

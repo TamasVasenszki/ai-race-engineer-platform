@@ -1,17 +1,36 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import httpx
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from ai import get_provider
+from ai.ollama import OllamaProvider
 from config import settings
 from routers import incidents, laps, sessions
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.ai_provider = get_provider()
+    app.state.ollama_status = None
+    if isinstance(app.state.ai_provider, OllamaProvider):
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                r = await client.get(f"{settings.ollama_base_url}/api/tags")
+                r.raise_for_status()
+                app.state.ollama_status = "ok"
+                logger.info("Ollama reachable at %s", settings.ollama_base_url)
+        except Exception:
+            app.state.ollama_status = "unreachable"
+            logger.warning(
+                "Ollama unreachable at %s — requests will fail until it's available",
+                settings.ollama_base_url,
+            )
     yield
 
 
@@ -36,5 +55,8 @@ Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health")
-async def health() -> dict:
-    return {"status": "ok", "ai_provider": settings.ai_provider}
+async def health(request: Request) -> dict:
+    result: dict = {"status": "ok", "ai_provider": settings.ai_provider}
+    if request.app.state.ollama_status is not None:
+        result["ollama_status"] = request.app.state.ollama_status
+    return result

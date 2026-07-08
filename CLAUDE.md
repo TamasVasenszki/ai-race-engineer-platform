@@ -181,9 +181,13 @@ Before every new feature branch:
 - Telemetry agent (ac_telemetry.py + agent.py) tested on Windows with live AC session — Shared Memory reading and backend POST both working
 
 ### API Endpoints
-- GET /health → {"status":"ok","ai_provider":"mock"}
+- GET /health → {"status":"ok","ai_provider":"mock"} (includes `ollama_status` when provider is ollama)
 - POST /laps/ → LapResponse (id, session_id, lap_time_ms, ai_summary, ai_recommendations, created_at)
 - GET /laps/{id} → LapResponse
+- POST /sessions/ → SessionResponse (id, track, car, created_at)
+- GET /sessions/ → list of SessionResponse
+- GET /sessions/{id} → SessionResponse
+- POST /sessions/{id}/incidents → IncidentReportResponse (incidents, provider)
 
 ### Key Decisions
 - .env at project root (not inside backend/)
@@ -226,8 +230,16 @@ Before every new feature branch:
 - **Observability access:** Grafana via `kubectl port-forward` (`make grafana`), never a public ALB.
 - **Carry-over live checks (next cluster cycle):** #36 SG-cleanup at teardown; #26 Grafana dashboard visual.
 
+### Phase 5 — DONE (AI Incident Analyst + OllamaProvider + offline mode)
+- **Sessions endpoint (#28, PR #46):** POST/GET/list `/sessions/` endpoints, `RacingSession` model, Pydantic schemas, 5 tests with in-memory SQLite (`aiosqlite` + `conftest.py`).
+- **OllamaProvider (#39, PR #47):** Full `analyze_lap()` with retry+fallback on JSON parse failure, Docker Compose ollama service behind `ollama` profile, 5 unit tests.
+- **Incident Analyst base (#41, PR #48):** `Incident`/`IncidentReport` dataclasses on `AIProvider`, `analyze_incidents()` as non-abstract method (default `NotImplementedError`), MockProvider threshold-based detection (>15% warning, >50% critical), 5 tests.
+- **Incident Analyst prompts (#42, PR #49):** OllamaProvider `analyze_incidents()` with retry+fallback, ClaudeProvider with forced tool use (`report_incident_analysis`), refactored shared `_call()`/`_tool_call()` methods, 5 tests.
+- **Incident Analyst endpoint + dashboard (#43, PR #50):** `POST /sessions/{id}/incidents` endpoint, `IncidentAnalysis` React component with severity badges, `useIncidentAnalysis` on-demand hook, App.tsx updated, 4 endpoint tests.
+- **Offline mode (#44):** Docker Compose `OLLAMA_BASE_URL` override for backend→ollama networking, startup Ollama connectivity check (log warning, don't crash), `/health` includes `ollama_status` when provider is ollama, `.env.example` offline preset, README offline mode docs.
+
 ### Still open / backlog
-- #28 `/sessions/` endpoint — `laps.session_id` is an FK to `racing_sessions` with no create API yet; seed a session via `kubectl exec` for testing. · #29 remote Terraform state (S3). · #30 frontend deploy to EKS. · #21 perl-free base image.
+- #29 remote Terraform state (S3). · #30 frontend deploy to EKS. · #21 perl-free base image.
 - CD is a no-op until the `AWS_DEPLOY_ROLE_ARN` repo variable is set from the `github_actions_role_arn` output.
 
 ## Reference Links
