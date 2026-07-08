@@ -1,5 +1,7 @@
 import os
 
+from config import settings
+
 from .base import AIProvider, AnalysisResult
 from .claude import ClaudeProvider
 from .mock import MockProvider
@@ -17,7 +19,10 @@ def get_provider() -> AIProvider:
         case "openai":
             return OpenAIProvider(api_key=os.environ["OPENAI_API_KEY"])
         case "ollama":
-            return OllamaProvider(base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
+            return OllamaProvider(
+                base_url=settings.ollama_base_url,
+                model=settings.ollama_model,
+            )
         case _:
             raise ValueError(f"Unknown AI_PROVIDER: {provider}")
 

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2"
 
     database_url: str = "postgresql+asyncpg://race:race@db:5432/race_engineer"
 
