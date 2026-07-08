@@ -16,6 +16,21 @@ services:
       retries: 5
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   backend:
     build: ./backend
     env_file: .env
@@ -58,3 +73,4 @@ services:
 
 volumes:
   postgres_data:
+  ollama_data:
