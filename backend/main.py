@@ -6,7 +6,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from ai import get_provider
 from config import settings
-from routers import laps
+from routers import laps, sessions
 
 
 @asynccontextmanager
@@ -27,6 +27,7 @@ app.add_middleware(
 
 
 app.include_router(laps.router, prefix="/laps", tags=["laps"])
+app.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
 
 # Prometheus metrics at /metrics (http_requests_total, http_request_duration_seconds, …),
 # scraped by the kube-prometheus-stack via the ServiceMonitor in monitoring/.
