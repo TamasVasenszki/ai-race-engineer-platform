@@ -2,7 +2,7 @@ import os
 
 from config import settings
 
-from .base import AIProvider, AnalysisResult
+from .base import AIProvider, AnalysisResult, Incident, IncidentReport
 from .claude import ClaudeProvider
 from .mock import MockProvider
 from .ollama import OllamaProvider
@@ -27,4 +27,10 @@ def get_provider() -> AIProvider:
             raise ValueError(f"Unknown AI_PROVIDER: {provider}")
 
 
-__all__ = ["AIProvider", "AnalysisResult", "get_provider"]
+__all__ = [
+    "AIProvider",
+    "AnalysisResult",
+    "Incident",
+    "IncidentReport",
+    "get_provider",
+]
