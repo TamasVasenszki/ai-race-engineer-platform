@@ -106,9 +106,15 @@ deploy:
 	@REGION=$$($(TF) output -raw region); \
 	ECR_URL=$$($(TF) output -raw ecr_repository_url); \
 	SECRET=$$($(TF) output -raw database_url_secret_name); \
-	helm upgrade --install $(CHART_NAME) $(CHART) --namespace $(NAMESPACE) \
-	  --set image.repository=$$ECR_URL --set image.tag=$(IMAGE_TAG) \
-	  --set aws.region=$$REGION --set aws.databaseUrlSecretName=$$SECRET \
+	ANTHROPIC_SECRET=$$($(TF) output -raw anthropic_api_key_secret_name); \
+	OPENAI_SECRET=$$($(TF) output -raw openai_api_key_secret_name); \
+	AI_PROVIDER=$$($(TF) output -raw ai_provider); \
+	SET_FLAGS="--set image.repository=$$ECR_URL --set image.tag=$(IMAGE_TAG)"; \
+	SET_FLAGS="$$SET_FLAGS --set aws.region=$$REGION --set aws.databaseUrlSecretName=$$SECRET"; \
+	SET_FLAGS="$$SET_FLAGS --set env.AI_PROVIDER=$$AI_PROVIDER"; \
+	if [ -n "$$ANTHROPIC_SECRET" ]; then SET_FLAGS="$$SET_FLAGS --set aws.anthropicApiKeySecretName=$$ANTHROPIC_SECRET"; fi; \
+	if [ -n "$$OPENAI_SECRET" ]; then SET_FLAGS="$$SET_FLAGS --set aws.openaiApiKeySecretName=$$OPENAI_SECRET"; fi; \
+	helm upgrade --install $(CHART_NAME) $(CHART) --namespace $(NAMESPACE) $$SET_FLAGS \
 	  --wait --timeout 10m
 
 url:

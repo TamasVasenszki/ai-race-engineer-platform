@@ -38,6 +38,21 @@ output "database_url_secret_name" {
   value       = module.rds.database_url_secret_name
 }
 
+output "ai_provider" {
+  description = "Configured AI provider."
+  value       = var.ai_provider
+}
+
+output "anthropic_api_key_secret_name" {
+  description = "Secrets Manager name of the Anthropic API key (empty if not created)."
+  value       = var.anthropic_api_key != "" ? aws_secretsmanager_secret.anthropic_api_key[0].name : ""
+}
+
+output "openai_api_key_secret_name" {
+  description = "Secrets Manager name of the OpenAI API key (empty if not created)."
+  value       = var.openai_api_key != "" ? aws_secretsmanager_secret.openai_api_key[0].name : ""
+}
+
 output "github_actions_role_arn" {
   description = "Role ARN the CD workflow assumes via OIDC (set as the AWS_DEPLOY_ROLE_ARN repo variable)."
   value       = aws_iam_role.github_actions_cd.arn
