@@ -260,8 +260,13 @@ Before every new feature branch:
 - **34 backend tests** (27 from Phase 5 + 3 session laps + 4 WebSocket).
 - **Live e2e verified (#57, PR #63):** `docker compose up` → 3 services healthy → dashboard loads with dark theme at `localhost:5173` → WebSocket LIVE indicator active → curl: create session + post 4 laps + real-time delivery confirmed (lap appears in browser instantly via WS) → `GET /sessions/{id}/laps` returns ordered laps → incident analysis endpoint returns `{"provider":"mock"}`. WebSocket upgrade (101) confirmed on both direct backend (:8000) and nginx proxy (:5173). Dashboard screenshot in `docs/ui/phase6-dashboard.png`.
 
+### Cross-cutting improvements (post-Phase 6)
+- **Configurable AI provider on EKS (#64, PR #65):** Conditional Secrets Manager secrets for Anthropic/OpenAI API keys (created only when `anthropic_api_key`/`openai_api_key` are non-empty). Backend Helm SecretProviderClass + Deployment extended with optional AI key volume mounts/env vars. Makefile and CD pipeline pass `--set` flags conditionally.
+- **Remote Terraform state (#29, PR #66):** S3 + DynamoDB backend for state locking. Bootstrap config (`infra/terraform/bootstrap/`) creates the bucket and lock table. Main config switched from `local` to `s3` backend.
+- **Perl-free base image (#21, PR #67):** Backend Dockerfile switched from `python:3.13-slim` to `python:3.13-alpine`. Verified asyncpg musllinux wheel availability.
+- **Frontend deploy to EKS (#30):** Frontend ECR repo + CD IAM update. Frontend Helm chart (`infra/k8s/frontend/`) with Deployment/Service/Ingress. Shared ALB via Ingress Group — backend at `group.order: "100"` claims API paths (`/health`, `/laps`, `/sessions`, `/ws`, `/metrics`), frontend at `group.order: "200"` catches `/`. `VITE_API_URL` build arg (default `http://localhost:8000` for Docker Compose, `""` for EKS → relative URLs). Makefile `push-frontend` + `deploy-frontend` targets. CD pipeline builds + pushes + deploys both images.
+
 ### Still open / backlog
-- #29 remote Terraform state (S3). · #30 frontend deploy to EKS. · #21 perl-free base image.
 - CD is a no-op until the `AWS_DEPLOY_ROLE_ARN` repo variable is set from the `github_actions_role_arn` output.
 
 ## Reference Links

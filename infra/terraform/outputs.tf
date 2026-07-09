@@ -23,6 +23,11 @@ output "ecr_repository_url" {
   value       = module.ecr.repository_url
 }
 
+output "frontend_ecr_repository_url" {
+  description = "ECR repository URL for the frontend image."
+  value       = module.ecr.frontend_repository_url
+}
+
 output "vpc_id" {
   description = "VPC ID (passed to the AWS Load Balancer Controller helm install: --set vpcId)."
   value       = module.vpc.vpc_id

@@ -10,10 +10,12 @@
 
 SHELL := /bin/bash
 
-TF_DIR     := infra/terraform
-CHART      := infra/k8s/backend
-CHART_NAME := ai-race-backend
-NAMESPACE  := default
+TF_DIR              := infra/terraform
+CHART               := infra/k8s/backend
+CHART_NAME          := ai-race-backend
+FRONTEND_CHART      := infra/k8s/frontend
+FRONTEND_CHART_NAME := ai-race-frontend
+NAMESPACE           := default
 
 # Monitoring (kube-prometheus-stack) — installed separately from the standard bring-up.
 MONITORING_NS := monitoring
@@ -28,7 +30,7 @@ CSI_AWS_PROVIDER_URL := https://raw.githubusercontent.com/aws/secrets-store-csi-
 
 TF := terraform -chdir=$(TF_DIR)
 
-.PHONY: help apply kubeconfig push lbc csi deploy url monitoring logging grafana confirm-destroy destroy
+.PHONY: help apply kubeconfig push push-frontend lbc csi deploy deploy-frontend url monitoring logging grafana confirm-destroy destroy
 
 help:
 	@echo "AI Race Engineer — EKS lifecycle"
@@ -40,7 +42,9 @@ help:
 	@echo "  AUTO_APPROVE=1 make destroy   Same, unattended (skips the confirmation prompt)."
 	@echo ""
 	@echo "  make push                  Build + push the backend image to ECR (tag IMAGE_TAG=$(IMAGE_TAG))."
+	@echo "  make push-frontend         Build + push the frontend image to ECR (tag IMAGE_TAG=$(IMAGE_TAG))."
 	@echo "  make deploy                Helm upgrade the backend chart only (assumes cluster + add-ons up)."
+	@echo "  make deploy-frontend       Helm upgrade the frontend chart only."
 	@echo "  make monitoring            Install kube-prometheus-stack + backend ServiceMonitor + dashboard + alert rules."
 	@echo "  make logging               Install Loki + Promtail + Loki datasource + backend logs dashboard."
 	@echo "  make grafana               Port-forward Grafana to http://localhost:3000 (admin/prom-operator)."
@@ -49,20 +53,24 @@ help:
 # ---- apply -----------------------------------------------------------------
 apply:
 	@docker info >/dev/null 2>&1 || { echo "ERROR: Docker daemon is not running — start Docker Desktop, then re-run 'make apply'."; exit 1; }
-	@echo ">> [1/7] terraform apply (auto-approve)"
+	@echo ">> [1/9] terraform apply (auto-approve)"
 	$(TF) init -input=false
 	$(TF) apply -auto-approve
-	@echo ">> [2/7] kubeconfig"
+	@echo ">> [2/9] kubeconfig"
 	@$(MAKE) --no-print-directory kubeconfig
-	@echo ">> [3/7] build + push image ($(IMAGE_TAG))"
+	@echo ">> [3/9] build + push backend image ($(IMAGE_TAG))"
 	@$(MAKE) --no-print-directory push
-	@echo ">> [4/7] AWS Load Balancer Controller"
+	@echo ">> [4/9] build + push frontend image ($(IMAGE_TAG))"
+	@$(MAKE) --no-print-directory push-frontend
+	@echo ">> [5/9] AWS Load Balancer Controller"
 	@$(MAKE) --no-print-directory lbc
-	@echo ">> [5/7] Secrets Store CSI driver + AWS provider"
+	@echo ">> [6/9] Secrets Store CSI driver + AWS provider"
 	@$(MAKE) --no-print-directory csi
-	@echo ">> [6/7] backend chart"
+	@echo ">> [7/9] backend chart"
 	@$(MAKE) --no-print-directory deploy
-	@echo ">> [7/7] ALB address"
+	@echo ">> [8/9] frontend chart"
+	@$(MAKE) --no-print-directory deploy-frontend
+	@echo ">> [9/9] ALB address"
 	@$(MAKE) --no-print-directory url
 
 kubeconfig:
@@ -76,6 +84,14 @@ push:
 	aws ecr get-login-password --region $$REGION \
 	  | docker login --username AWS --password-stdin $${ECR_URL%/*}; \
 	docker buildx build --platform linux/amd64 -t $$ECR_URL:$(IMAGE_TAG) ./backend --push
+
+push-frontend:
+	@REGION=$$($(TF) output -raw region); \
+	ECR_URL=$$($(TF) output -raw frontend_ecr_repository_url); \
+	aws ecr get-login-password --region $$REGION \
+	  | docker login --username AWS --password-stdin $${ECR_URL%/*}; \
+	docker buildx build --platform linux/amd64 --build-arg VITE_API_URL="" \
+	  -t $$ECR_URL:$(IMAGE_TAG) ./frontend --push
 
 lbc:
 	helm repo add eks https://aws.github.io/eks-charts 2>/dev/null || true
@@ -117,6 +133,12 @@ deploy:
 	helm upgrade --install $(CHART_NAME) $(CHART) --namespace $(NAMESPACE) $$SET_FLAGS \
 	  --wait --timeout 10m
 
+deploy-frontend:
+	@ECR_URL=$$($(TF) output -raw frontend_ecr_repository_url); \
+	helm upgrade --install $(FRONTEND_CHART_NAME) $(FRONTEND_CHART) --namespace $(NAMESPACE) \
+	  --set image.repository=$$ECR_URL --set image.tag=$(IMAGE_TAG) \
+	  --wait --timeout 5m
+
 url:
 	@ALB=""; \
 	for i in $$(seq 1 40); do \
@@ -126,7 +148,8 @@ url:
 	  echo "   waiting for ALB address..."; sleep 15; \
 	done; \
 	if [ -z "$$ALB" ]; then echo "ALB address not ready (timeout)"; exit 1; fi; \
-	echo "   backend: http://$$ALB/health"
+	echo "   frontend: http://$$ALB/"; \
+	echo "   backend:  http://$$ALB/health"
 
 # ---- monitoring (opt-in; not part of `apply`) ------------------------------
 monitoring:
@@ -180,7 +203,8 @@ destroy: confirm-destroy
 	@set -e; \
 	REGION=$$($(TF) output -raw region); \
 	CLUSTER=$$($(TF) output -raw cluster_name); \
-	echo ">> uninstalling backend chart (deletes the Ingress -> LBC deprovisions the ALB)"; \
+	echo ">> uninstalling frontend + backend charts (deletes Ingress -> LBC deprovisions the ALB)"; \
+	helm uninstall $(FRONTEND_CHART_NAME) -n $(NAMESPACE) || true; \
 	helm uninstall $(CHART_NAME) -n $(NAMESPACE) || true; \
 	echo ">> waiting for $$CLUSTER's ALB(s) to be deprovisioned (tag-filtered; shared account)"; \
 	for i in $$(seq 1 40); do \
