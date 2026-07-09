@@ -25,6 +25,9 @@ async def create_lap(
     db.add(lap)
     await db.commit()
     await db.refresh(lap)
+    await request.app.state.ws_manager.broadcast(
+        {"type": "new_lap", "lap": LapResponse.model_validate(lap).model_dump(mode="json")}
+    )
     return lap
 
 
