@@ -45,12 +45,12 @@ output "ai_provider" {
 
 output "anthropic_api_key_secret_name" {
   description = "Secrets Manager name of the Anthropic API key (empty if not created)."
-  value       = var.anthropic_api_key != "" ? aws_secretsmanager_secret.anthropic_api_key[0].name : ""
+  value       = nonsensitive(var.anthropic_api_key != "" ? aws_secretsmanager_secret.anthropic_api_key[0].name : "")
 }
 
 output "openai_api_key_secret_name" {
   description = "Secrets Manager name of the OpenAI API key (empty if not created)."
-  value       = var.openai_api_key != "" ? aws_secretsmanager_secret.openai_api_key[0].name : ""
+  value       = nonsensitive(var.openai_api_key != "" ? aws_secretsmanager_secret.openai_api_key[0].name : "")
 }
 
 output "github_actions_role_arn" {

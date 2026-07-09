@@ -80,8 +80,8 @@ resource "aws_iam_role" "backend" {
 
 data "aws_iam_policy_document" "backend_secret" {
   statement {
-    effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
     resources = compact([
       var.database_url_secret_arn,
       var.anthropic_api_key_secret_arn,

@@ -16,7 +16,11 @@ terraform {
     }
   }
 
-  # Local state for this learning project (remote state is backlog). Apply is run
-  # manually with user approval, not from CD.
-  backend "local" {}
+  backend "s3" {
+    bucket         = "ai-race-engineer-tf-state"
+    key            = "infra/terraform.tfstate"
+    region         = "eu-central-1"
+    dynamodb_table = "ai-race-engineer-tf-lock"
+    encrypt        = true
+  }
 }
