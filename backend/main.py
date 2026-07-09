@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -10,6 +10,7 @@ from ai import get_provider
 from ai.ollama import OllamaProvider
 from config import settings
 from routers import incidents, laps, sessions
+from ws import ConnectionManager
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.ai_provider = get_provider()
+    app.state.ws_manager = ConnectionManager()
     app.state.ollama_status = None
     if isinstance(app.state.ai_provider, OllamaProvider):
         try:
@@ -52,6 +54,17 @@ app.include_router(incidents.router, prefix="/sessions", tags=["incidents"])
 # Prometheus metrics at /metrics (http_requests_total, http_request_duration_seconds, …),
 # scraped by the kube-prometheus-stack via the ServiceMonitor in monitoring/.
 Instrumentator().instrument(app).expose(app)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    manager: ConnectionManager = websocket.app.state.ws_manager
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 
 @app.get("/health")

@@ -47,7 +47,7 @@ async def analyze_incidents(
     report = await request.app.state.ai_provider.analyze_incidents(
         lap_dicts, session_info
     )
-    return {
+    response = {
         "incidents": [
             {
                 "lap_number": inc.lap_number,
@@ -60,3 +60,12 @@ async def analyze_incidents(
         ],
         "provider": report.provider,
     }
+    if report.incidents:
+        await request.app.state.ws_manager.broadcast(
+            {
+                "type": "incident_alert",
+                "session_id": str(session_id),
+                "incidents": response["incidents"],
+            }
+        )
+    return response
