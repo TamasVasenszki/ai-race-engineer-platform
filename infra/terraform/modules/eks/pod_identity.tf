@@ -82,7 +82,11 @@ data "aws_iam_policy_document" "backend_secret" {
   statement {
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-    resources = [var.database_url_secret_arn]
+    resources = compact([
+      var.database_url_secret_arn,
+      var.anthropic_api_key_secret_arn,
+      var.openai_api_key_secret_arn,
+    ])
   }
 }
 

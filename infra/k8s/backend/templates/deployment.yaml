@@ -32,6 +32,20 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secret.syncedName }}
                   key: {{ .Values.secret.key }}
+{{- if .Values.aws.anthropicApiKeySecretName }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-ai-keys
+                  key: ANTHROPIC_API_KEY
+{{- end }}
+{{- if .Values.aws.openaiApiKeySecretName }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-ai-keys
+                  key: OPENAI_API_KEY
+{{- end }}
           # Mounting the CSI volume is what triggers the secret fetch + sync — it is required,
           # not cosmetic. Without a pod mounting it, the SecretProviderClass never runs and the
           # backend-db k8s Secret is never created.

@@ -37,6 +37,10 @@ aws:
   usePodIdentity: "true"
   # Override at install: --set aws.databaseUrlSecretName=$(terraform output -raw database_url_secret_name)
   databaseUrlSecretName: ai-race-engineer/database-url
+  # Optional: set via --set when AI_PROVIDER is claude or openai.
+  # Leave empty for mock/ollama (no secret created).
+  anthropicApiKeySecretName: ""
+  openaiApiKeySecretName: ""
 
 # The native k8s Secret the CSI driver syncs the plain-string value into.
 secret:

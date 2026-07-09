@@ -7,6 +7,11 @@ name: CD
 # No-op until the AWS_DEPLOY_ROLE_ARN repo variable is set to the `github_actions_role_arn`
 # Terraform output. The env constants below must match the Terraform resource names
 # (defaults derived from project_name = "ai-race-engineer").
+#
+# Optional repo variables for AI provider support:
+#   AI_PROVIDER              — "mock" (default), "claude", "openai", "ollama"
+#   ANTHROPIC_SECRET_NAME    — Secrets Manager name (terraform output anthropic_api_key_secret_name)
+#   OPENAI_SECRET_NAME       — Secrets Manager name (terraform output openai_api_key_secret_name)
 
 on:
   push:
@@ -59,10 +64,20 @@ jobs:
 
       - name: Deploy backend (helm upgrade)
         run: |
+          SET_FLAGS=""
+          SET_FLAGS="$SET_FLAGS --set image.repository=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          SET_FLAGS="$SET_FLAGS --set image.tag=${{ github.sha }}"
+          SET_FLAGS="$SET_FLAGS --set aws.region=$AWS_REGION"
+          SET_FLAGS="$SET_FLAGS --set aws.databaseUrlSecretName=$DB_SECRET_NAME"
+          if [ -n "${{ vars.AI_PROVIDER }}" ]; then
+            SET_FLAGS="$SET_FLAGS --set env.AI_PROVIDER=${{ vars.AI_PROVIDER }}"
+          fi
+          if [ -n "${{ vars.ANTHROPIC_SECRET_NAME }}" ]; then
+            SET_FLAGS="$SET_FLAGS --set aws.anthropicApiKeySecretName=${{ vars.ANTHROPIC_SECRET_NAME }}"
+          fi
+          if [ -n "${{ vars.OPENAI_SECRET_NAME }}" ]; then
+            SET_FLAGS="$SET_FLAGS --set aws.openaiApiKeySecretName=${{ vars.OPENAI_SECRET_NAME }}"
+          fi
           helm upgrade --install ai-race-backend infra/k8s/backend \
-            --namespace default \
-            --set image.repository=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }} \
-            --set image.tag=${{ github.sha }} \
-            --set aws.region="$AWS_REGION" \
-            --set aws.databaseUrlSecretName="$DB_SECRET_NAME" \
+            --namespace default $SET_FLAGS \
             --wait --timeout 10m

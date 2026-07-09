@@ -28,7 +28,9 @@ module "eks" {
   node_desired_size       = var.node_desired_size
   node_min_size           = var.node_min_size
   node_max_size           = var.node_max_size
-  database_url_secret_arn = module.rds.database_url_secret_arn
+  database_url_secret_arn      = module.rds.database_url_secret_arn
+  anthropic_api_key_secret_arn = var.anthropic_api_key != "" ? aws_secretsmanager_secret.anthropic_api_key[0].arn : ""
+  openai_api_key_secret_arn    = var.openai_api_key != "" ? aws_secretsmanager_secret.openai_api_key[0].arn : ""
 }
 
 module "rds" {

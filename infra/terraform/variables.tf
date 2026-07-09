@@ -69,6 +69,27 @@ variable "db_instance_class" {
   default     = "db.t4g.micro"
 }
 
+# --- AI provider -----------------------------------------------------------
+variable "ai_provider" {
+  description = "AI provider to use on EKS (mock, claude, openai, ollama)."
+  type        = string
+  default     = "mock"
+}
+
+variable "anthropic_api_key" {
+  description = "Anthropic API key for Claude provider. Leave empty for mock/ollama."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "openai_api_key" {
+  description = "OpenAI API key. Leave empty for mock/ollama."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 # --- CD --------------------------------------------------------------------
 variable "github_repo" {
   description = "GitHub <owner>/<repo> allowed to assume the CD role via OIDC."

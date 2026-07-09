@@ -17,3 +17,8 @@
 # db_instance_class = "db.t4g.micro"
 # db_name           = "race_engineer"
 # db_username       = "race"
+
+# AI provider (default: mock — no API key needed):
+# ai_provider       = "mock"
+# anthropic_api_key = ""    # set for ai_provider=claude
+# openai_api_key    = ""    # set for ai_provider=openai

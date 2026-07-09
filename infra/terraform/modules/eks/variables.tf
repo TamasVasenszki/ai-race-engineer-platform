@@ -42,3 +42,16 @@ variable "node_max_size" {
   type        = number
   default     = 4
 }
+
+# --- Optional AI provider secret ARNs -------------------------------------
+variable "anthropic_api_key_secret_arn" {
+  description = "Secrets Manager ARN of the Anthropic API key (empty if not used)."
+  type        = string
+  default     = ""
+}
+
+variable "openai_api_key_secret_arn" {
+  description = "Secrets Manager ARN of the OpenAI API key (empty if not used)."
+  type        = string
+  default     = ""
+}
