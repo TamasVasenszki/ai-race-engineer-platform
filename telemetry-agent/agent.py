@@ -12,7 +12,6 @@ Usage:
 
 import argparse
 import time
-import uuid
 
 import httpx
 
@@ -20,20 +19,11 @@ from ac_telemetry import ACTelemetry
 
 
 def create_session(client: httpx.Client, backend: str, car: str, track: str) -> str:
-    """
-    Create a RacingSession via the backend API.
-    Returns the session UUID as a string.
-
-    NOTE: There is no /sessions/ endpoint yet — this inserts directly
-    via a hardcoded UUID for now. Replace with a proper API call
-    once the sessions endpoint exists.
-    """
-    session_id = str(uuid.uuid4())
+    """Create a RacingSession via the backend API. Returns the session UUID."""
+    resp = client.post(f"{backend}/sessions/", json={"track": track, "car": car})
+    resp.raise_for_status()
+    session_id = resp.json()["id"]
     print(f"[agent] Created session {session_id} (car={car}, track={track})")
-    print(f"[agent] NOTE: No /sessions/ endpoint yet — you need to insert manually:")
-    print(f'  docker exec -it ai-race-engineer-platform-db-1 psql -U race -d race_engineer -c \\')
-    print(f"  \"INSERT INTO racing_sessions (id, car, track) VALUES ('{session_id}', '{car}', '{track}');\"")
-    input("[agent] Press Enter after inserting the session, or Ctrl+C to quit...")
     return session_id
 
 
