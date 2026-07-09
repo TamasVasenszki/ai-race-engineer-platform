@@ -1,0 +1,28 @@
+namespace: default
+
+replicaCount: 2
+
+image:
+  # Override at install: --set image.repository=$(terraform output -raw frontend_ecr_repository_url)
+  repository: REPLACE_WITH_ECR_REPOSITORY_URL
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort: 80
+
+service:
+  port: 80
+
+ingress:
+  scheme: internet-facing
+  groupName: ai-race-engineer
+  groupOrder: "200"
+  healthcheckPath: /
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

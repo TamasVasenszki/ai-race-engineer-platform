@@ -6,6 +6,8 @@ metadata:
   labels:
     app: ai-race-backend
   annotations:
+    alb.ingress.kubernetes.io/group.name: {{ .Values.ingress.groupName }}
+    alb.ingress.kubernetes.io/group.order: {{ .Values.ingress.groupOrder | quote }}
     alb.ingress.kubernetes.io/scheme: {{ .Values.ingress.scheme }}
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/backend-protocol: HTTP
@@ -17,7 +19,35 @@ spec:
   rules:
     - http:
         paths:
-          - path: /
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-race-backend
+                port:
+                  number: {{ .Values.service.port }}
+          - path: /laps
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-race-backend
+                port:
+                  number: {{ .Values.service.port }}
+          - path: /sessions
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-race-backend
+                port:
+                  number: {{ .Values.service.port }}
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-race-backend
+                port:
+                  number: {{ .Values.service.port }}
+          - path: /metrics
             pathType: Prefix
             backend:
               service:

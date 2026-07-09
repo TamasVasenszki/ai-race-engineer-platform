@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ai-race-frontend
+description: AI Race Engineer React dashboard — nginx SPA served behind the shared ALB.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

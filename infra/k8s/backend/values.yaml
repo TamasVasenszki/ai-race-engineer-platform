@@ -28,6 +28,8 @@ service:
 ingress:
   scheme: internet-facing
   healthcheckPath: /health
+  groupName: ai-race-engineer
+  groupOrder: "100"
 
 # AWS region and the Secrets Manager secret the CSI driver reads.
 aws:

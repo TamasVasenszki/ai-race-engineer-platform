@@ -54,7 +54,7 @@ data "aws_iam_policy_document" "github_cd" {
     resources = ["*"]
   }
 
-  # Push/pull on the backend repository only.
+  # Push/pull on the backend and frontend repositories.
   statement {
     sid = "EcrPush"
     actions = [
@@ -66,7 +66,7 @@ data "aws_iam_policy_document" "github_cd" {
       "ecr:BatchGetImage",
       "ecr:GetDownloadUrlForLayer",
     ]
-    resources = [module.ecr.repository_arn]
+    resources = [module.ecr.repository_arn, module.ecr.frontend_repository_arn]
   }
 
   # Required by `aws eks update-kubeconfig`; the Kubernetes-level permissions come from the

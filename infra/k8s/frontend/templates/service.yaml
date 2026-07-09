@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-race-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: ai-race-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-race-frontend
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.containerPort }}
