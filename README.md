@@ -12,10 +12,10 @@ platform runs fully offline and without any API key for development.
 ```
 Windows PC                         Mac (dev) / AWS
 ─────────────────                  ──────────────────────────────────────
-Assetto Corsa                      FastAPI backend  (REST + /metrics)
+Assetto Corsa                      FastAPI backend  (REST + WebSocket + /metrics)
   + Python telemetry agent    →    PostgreSQL (RDS in prod)
   (Shared Memory API)              AI adapter layer (Claude/OpenAI/Ollama/Mock)
-                                   React dashboard
+                                   React live dashboard (dark racing theme)
                                         ↓
                                    AWS EKS  (Terraform, Helm)
                                    Prometheus + Grafana + Loki
@@ -77,8 +77,8 @@ make destroy     # ordered teardown (asks 'yes'); reclaims everything, no orphan
 ## Layout
 
 ```
-backend/          FastAPI API (routers, AI adapter, SQLAlchemy models, Alembic)
-frontend/         React (Vite) dashboard
+backend/          FastAPI API (REST + WebSocket, AI adapter, SQLAlchemy models, Alembic)
+frontend/         React live dashboard (session sidebar, lap timeline, incident panel)
 telemetry-agent/  Python agent — Assetto Corsa Shared Memory reader
 infra/terraform/  VPC, EKS, RDS, ECR, IAM (modular)
 infra/k8s/        backend Helm chart + deploy runbook
@@ -88,6 +88,8 @@ monitoring/       Prometheus/Grafana values, Loki/Promtail, dashboards, alert ru
 
 ## Status
 
-Phases 1–5 complete: telemetry + backend + DB, AI analysis + dashboard, Docker + CI/CD + AWS,
-EKS + cloud-native observability (metrics, logs, alerting), and AI Incident Analyst + Ollama
-offline mode. See `CLAUDE.md` for the detailed per-phase state.
+Phases 1–6 complete: telemetry + backend + DB, AI analysis + dashboard, Docker + CI/CD + AWS,
+EKS + cloud-native observability, AI Incident Analyst + Ollama offline mode, and live real-time
+dashboard with WebSocket. The frontend is a dark-themed three-panel racing monitor — session
+sidebar, lap timeline with proportional time bars, and an incident panel with live alerts.
+See `CLAUDE.md` for the detailed per-phase state.
