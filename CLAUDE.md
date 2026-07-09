@@ -238,6 +238,13 @@ Before every new feature branch:
 - **Incident Analyst endpoint + dashboard (#43, PR #50):** `POST /sessions/{id}/incidents` endpoint, `IncidentAnalysis` React component with severity badges, `useIncidentAnalysis` on-demand hook, App.tsx updated, 4 endpoint tests.
 - **Offline mode (#44):** Docker Compose `OLLAMA_BASE_URL` override for backend→ollama networking, startup Ollama connectivity check (log warning, don't crash), `/health` includes `ollama_status` when provider is ollama, `.env.example` offline preset, README offline mode docs.
 
+### Phase 6 — IN PROGRESS (live dashboard + WebSocket + frontend redesign)
+- **Goal:** Transform the UUID-input test interface into a live, real-time race engineer monitor
+- **WebSocket:** Backend pushes new lap data and incident alerts to connected frontends
+- **Frontend redesign:** Session list sidebar (no manual UUID entry), lap timeline visualization, incident panel with color-coded alerts, dark racing theme
+- **Live e2e:** Windows telemetry agent → Mac backend → browser dashboard in real-time
+- **Backlog cleanup:** #29 remote Terraform state, #30 frontend deploy to EKS, #21 perl-free base image
+
 ### Still open / backlog
 - #29 remote Terraform state (S3). · #30 frontend deploy to EKS. · #21 perl-free base image.
 - CD is a no-op until the `AWS_DEPLOY_ROLE_ARN` repo variable is set from the `github_actions_role_arn` output.
