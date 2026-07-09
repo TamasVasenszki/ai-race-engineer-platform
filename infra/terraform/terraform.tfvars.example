@@ -1,5 +1,10 @@
 # Copy to terraform.tfvars and adjust as needed. All values have defaults; override only what you need.
 # terraform.tfvars is gitignored.
+#
+# Prerequisites — run the bootstrap config first to create the S3 + DynamoDB backend:
+#   cd infra/terraform/bootstrap && terraform init && terraform apply
+# Then come back here:
+#   cd infra/terraform && terraform init
 
 # region       = "eu-central-1"
 # project_name = "ai-race-engineer"
