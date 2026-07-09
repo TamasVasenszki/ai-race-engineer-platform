@@ -53,7 +53,12 @@ ai-race-engineer/
 │   │   ├── ollama.py        # OllamaProvider (local, free)
 │   │   └── mock.py          # MockProvider (for testing, no API key needed)
 │   └── models/              # Pydantic v2 schemas
-├── frontend/                # React (Vite) dashboard
+├── frontend/                # React (Vite) live dashboard
+│   ├── src/components/      # Layout, SessionSidebar, LapTimeline, IncidentPanel, ConnectionStatus
+│   ├── src/hooks/           # useWebSocket, useSessions, useSessionLaps, useIncidentAnalysis
+│   ├── src/context/         # WebSocketContext provider
+│   ├── src/types/           # Lap, Session, Incident, WsMessage interfaces
+│   └── src/utils/           # formatLapTime
 ├── infra/                   # Terraform, Kubernetes manifests
 │   ├── terraform/
 │   └── k8s/
@@ -109,6 +114,12 @@ AI_PROVIDER=openai      # OpenAI API
 - Local LLM integration with Ollama
 - Platform incident analysis with root cause analysis
 - Full offline mode
+
+### Phase 6 — Live dashboard + WebSocket + frontend redesign
+- WebSocket real-time broadcast of laps and incidents
+- Dark racing theme, three-column layout
+- Session sidebar, lap timeline, incident panel
+- Telemetry agent uses sessions API (no manual SQL)
 
 ## Success Criteria
 
@@ -182,12 +193,14 @@ Before every new feature branch:
 
 ### API Endpoints
 - GET /health → {"status":"ok","ai_provider":"mock"} (includes `ollama_status` when provider is ollama)
-- POST /laps/ → LapResponse (id, session_id, lap_time_ms, ai_summary, ai_recommendations, created_at)
+- POST /laps/ → LapResponse (id, session_id, lap_time_ms, ai_summary, ai_recommendations, created_at) — broadcasts `new_lap` via WebSocket
 - GET /laps/{id} → LapResponse
 - POST /sessions/ → SessionResponse (id, track, car, created_at)
 - GET /sessions/ → list of SessionResponse
 - GET /sessions/{id} → SessionResponse
-- POST /sessions/{id}/incidents → IncidentReportResponse (incidents, provider)
+- GET /sessions/{id}/laps → list of LapResponse (ordered by lap_number)
+- POST /sessions/{id}/incidents → IncidentReportResponse (incidents, provider) — broadcasts `incident_alert` via WebSocket
+- WebSocket /ws → real-time broadcast of new laps and incident alerts
 
 ### Key Decisions
 - .env at project root (not inside backend/)
@@ -238,12 +251,14 @@ Before every new feature branch:
 - **Incident Analyst endpoint + dashboard (#43, PR #50):** `POST /sessions/{id}/incidents` endpoint, `IncidentAnalysis` React component with severity badges, `useIncidentAnalysis` on-demand hook, App.tsx updated, 4 endpoint tests.
 - **Offline mode (#44):** Docker Compose `OLLAMA_BASE_URL` override for backend→ollama networking, startup Ollama connectivity check (log warning, don't crash), `/health` includes `ollama_status` when provider is ollama, `.env.example` offline preset, README offline mode docs.
 
-### Phase 6 — IN PROGRESS (live dashboard + WebSocket + frontend redesign)
-- **Goal:** Transform the UUID-input test interface into a live, real-time race engineer monitor
-- **WebSocket:** Backend pushes new lap data and incident alerts to connected frontends
-- **Frontend redesign:** Session list sidebar (no manual UUID entry), lap timeline visualization, incident panel with color-coded alerts, dark racing theme
-- **Live e2e:** Windows telemetry agent → Mac backend → browser dashboard in real-time
-- **Backlog cleanup:** #29 remote Terraform state, #30 frontend deploy to EKS, #21 perl-free base image
+### Phase 6 — DONE (live dashboard + WebSocket + frontend redesign)
+- **Session laps endpoint (#52, PR #58):** `GET /sessions/{id}/laps` returns all laps for a session ordered by lap_number. Telemetry agent `create_session()` rewritten to call `POST /sessions/` instead of manual SQL INSERT workaround. 3 tests.
+- **WebSocket layer (#53, PR #59):** `ConnectionManager` class in `backend/ws.py`, `/ws` endpoint in `main.py`. `POST /laps/` broadcasts `{"type": "new_lap", "lap": {...}}` to all connected clients. `POST /sessions/{id}/incidents` broadcasts `{"type": "incident_alert", ...}` when incidents are detected. `frontend/nginx.conf` updated with WebSocket proxy block for Docker Compose mode. 4 tests.
+- **Dark racing theme (#54, PR #60):** CSS custom properties for dark palette (`#0d1117`/`#161b22`/`#1c2128`, green/red/yellow/blue accents), three-column CSS Grid layout (260px sidebar / fluid main / 300px panel), `Layout` and `ConnectionStatus` components. System monospace font stack, no new npm dependencies.
+- **Frontend data layer (#55, PR #61):** `useWebSocket` hook with auto-reconnect (exponential backoff 1s→10s), `useSessions` and `useSessionLaps` hooks, `Session` and `WsMessage` TypeScript types. `useSessionLaps` appends new laps from WebSocket messages matching the active session.
+- **Live dashboard (#56, PR #62):** Complete frontend rewrite — `SessionSidebar` (session list + LIVE badge), `LapTimeline` (lap cards with proportional time bars, best-lap green highlight, slide-in animation), `IncidentPanel` (live WebSocket alerts + on-demand analysis button). `WebSocketContext` provider, `formatLapTime` utility. Old `LapDashboard`, `IncidentAnalysis`, `useLap` removed.
+- **34 backend tests** (27 from Phase 5 + 3 session laps + 4 WebSocket).
+- **Live e2e verified (#57, PR #63):** `docker compose up` → 3 services healthy → dashboard loads with dark theme at `localhost:5173` → WebSocket LIVE indicator active → curl: create session + post 4 laps + real-time delivery confirmed (lap appears in browser instantly via WS) → `GET /sessions/{id}/laps` returns ordered laps → incident analysis endpoint returns `{"provider":"mock"}`. WebSocket upgrade (101) confirmed on both direct backend (:8000) and nginx proxy (:5173). Dashboard screenshot in `docs/ui/phase6-dashboard.png`.
 
 ### Still open / backlog
 - #29 remote Terraform state (S3). · #30 frontend deploy to EKS. · #21 perl-free base image.
