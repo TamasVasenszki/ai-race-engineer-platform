@@ -252,6 +252,12 @@ ai-race-engineer-platform/
 
 ---
 
+## Development Approach
+
+This project was built using an AI-assisted workflow with Claude.ai (architectural advisory) and Claude Code (implementation). All design decisions went through structured review rounds to ensure genuine understanding — the goal was to learn to work with AI harness tools.
+
+---
+
 ## Security
 
 - No API keys, `.env` files, or AWS credentials in code — `.env.example` for documentation only
