@@ -25,12 +25,12 @@ Dark-themed three-panel racing monitor: session sidebar with LIVE indicator, lap
 
 ```
 Windows PC                         Mac (dev) / AWS
--------------------------------------------------------------------------------------------------------------
+─────────────────                  ──────────────────────────────────────
 Assetto Corsa                      FastAPI backend  (REST + WebSocket + /metrics)
-  + Python telemetry agent    -->  PostgreSQL (RDS in prod)
+  + Python telemetry agent    →    PostgreSQL (RDS in prod)
   (Shared Memory API)              AI adapter layer (Claude / OpenAI / Ollama / Mock)
                                    React live dashboard (dark racing theme, WebSocket)
-                                        |
+                                        ↓
                                    AWS EKS  (Terraform, Helm, shared ALB)
                                    Prometheus + Grafana + Loki
 ```
@@ -147,11 +147,10 @@ docker compose up
 
 # 2. On the Windows PC with Assetto Corsa:
 #    - Install Python 3.11+
-#    - pip install requests
-#    - Edit telemetry-agent/agent.py → set BACKEND_URL to your Mac's LAN IP
+#    - pip install httpx
 #    - Start Assetto Corsa, enter a track
-#    - Run the agent:
-python telemetry-agent/agent.py
+#    - Run the agent (point it at your Mac's LAN IP):
+python telemetry-agent/agent.py --backend http://<mac-ip>:8000
 
 # 3. Laps appear in real-time on the Mac dashboard via WebSocket
 ```
@@ -167,7 +166,7 @@ python telemetry-agent/agent.py
 docker compose --profile ollama up
 
 # 3. First run only — pull the model (requires internet once)
-docker exec -it <ollama-container> ollama pull llama3.2
+docker exec -it ai-race-engineer-platform-ollama-1 ollama pull llama3.2
 
 # 4. Verify
 curl http://localhost:8000/health
